@@ -41,6 +41,14 @@ class DataProvenance(BaseModel):
     data_label: str = Field(description="live | cached | demonstration")
     disclaimer: str
     citations: List[str]
+    comparison_type: str = Field(
+        "cross-product",
+        description="Sentinel-1 RTC-S1 vs Sentinel-1 DSWx-S1 cross-product comparison"
+    )
+    confidence_metric_basis: str = Field(
+        "Heuristic radar backscatter change amplitude, not calibrated flood probability",
+        description="Explicit basis for evidence tier quantification"
+    )
 
 class AnalysisMetrics(BaseModel):
     analysis_id: str
@@ -55,6 +63,12 @@ class AnalysisMetrics(BaseModel):
     provenance: DataProvenance
     layer_urls: Dict[str, str]
     created_at: str
+    common_valid_aoi_km2: Optional[float] = None
+    ocean_masked_km2: Optional[float] = None
+    permanent_water_km2: Optional[float] = None
+    spatial_union_km2: Optional[float] = None
+    parallax_only_km2: Optional[float] = None
+    processing_version: Optional[str] = "v2.0-scientific-integrity"
 
 class CompareResponse(BaseModel):
     analysis_id: str

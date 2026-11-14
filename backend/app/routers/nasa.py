@@ -172,10 +172,12 @@ def process_satellite_imagery(payload: ProcessRequest):
         data_label=data_label,
         disclaimer=(
             "Treat newly identified areas as candidate inundation until independently validated. "
-            "Cross-sensor divergence against OPERA DSWx highlights potential vegetation penetration "
-            "without claiming unverified ground-truth superiority."
+            "Cross-product comparison between Sentinel-1 Level-2 RTC and Level-3 DSWx highlights "
+            "complementary radar sensitivity under vegetated canopies without claiming unverified ground-truth superiority."
         ),
-        citations=[d.citation for d in DATASETS_METADATA]
+        citations=[d.citation for d in DATASETS_METADATA],
+        comparison_type="cross-product",
+        confidence_metric_basis="Heuristic radar backscatter change amplitude, not calibrated flood probability"
     )
 
     created_at = manifest.get("post_event", {}).get("acquisition_date", "2024-01-22T18:14:05Z")
@@ -192,7 +194,13 @@ def process_satellite_imagery(payload: ProcessRequest):
         confidence_summary=result["confidence_summary"],
         provenance=provenance,
         layer_urls=result["layer_urls"],
-        created_at=created_at
+        created_at=created_at,
+        common_valid_aoi_km2=result.get("common_valid_aoi_km2"),
+        ocean_masked_km2=result.get("ocean_masked_km2"),
+        permanent_water_km2=result.get("permanent_water_km2"),
+        spatial_union_km2=result.get("spatial_union_km2"),
+        parallax_only_km2=result.get("parallax_only_km2"),
+        processing_version=result.get("processing_version", "v2.0-scientific-integrity")
     )
     save_analysis_record(metrics.model_dump())
     return metrics

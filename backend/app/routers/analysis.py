@@ -35,8 +35,8 @@ def list_available_cases():
 @router.post("/compare", response_model=CompareResponse)
 def compare_cross_sensor(payload: CompareRequest):
     """
-    Executes cross-sensor comparison between Sentinel-1 L2 RTC-derived inundation
-    and NASA OPERA Level-3 DSWx water extent.
+    Executes cross-product comparison between Sentinel-1 L2 RTC-derived inundation
+    and NASA OPERA Level-3 DSWx water extent strictly within a common valid observation mask.
     """
     case_id = payload.case_id or "demo_flood_case"
     # Run or retrieve processing
@@ -44,18 +44,19 @@ def compare_cross_sensor(payload: CompareRequest):
 
     breakdown = metrics.cross_sensor_breakdown
     summary = (
-        f"Cross-sensor evaluation identified {breakdown.agreement_open_water_km2} km² of confirmed "
-        f"open-water agreement and {breakdown.candidate_hidden_water_km2} km² of candidate inundated "
-        f"vegetation obscured in optical/surface water products. {breakdown.opera_only_water_km2} km² "
-        f"were observed as surface water by OPERA without significant radar backscatter change."
+        f"Cross-product evaluation strictly within the common valid analysis mask identified "
+        f"{breakdown.agreement_open_water_km2} km² of confirmed open-water agreement, "
+        f"{breakdown.candidate_hidden_water_km2} km² of candidate inundated vegetation obscured in "
+        f"standard surface water products, and {breakdown.opera_only_water_km2} km² classified by OPERA "
+        f"without significant radar backscatter change."
     )
 
     interpretation = (
-        "NISAR / Sentinel-1 radar change detection identifies backscatter enhancement (+2.5 dB) "
+        "Sentinel-1 radar change detection identifies backscatter enhancement (+2.5 dB) "
         "indicative of dihedral double-bounce reflections between standing water and woody plant stalks. "
         "These regions constitute candidate hidden water gaps. "
         "Per scientific protocol: Disagreement with OPERA DSWx highlights detection complementarity, "
-        "not definitive superiority."
+        "not definitive superiority. Both RTC-S1 and DSWx-S1 are derived from Sentinel-1 observations."
     )
 
     return CompareResponse(
