@@ -3,6 +3,8 @@
 .env.*
 !.env.example
 *.env
+.netrc
+_netrc
 
 # Project documentation & office binaries
 Documentation.docx
@@ -47,6 +49,8 @@ dist-ssr/
 .vite/
 
 # Geospatial Data & Raw Downloads
+data/raw/
+data/cache/
 data/raw/*
 !data/raw/.gitkeep
 data/processed/*
