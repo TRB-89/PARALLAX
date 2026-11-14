@@ -38,8 +38,8 @@ class Settings(BaseSettings):
 
     model_config = SettingsConfigDict(
         env_file=[
-            str(BACKEND_DIR / ".env"),
             str(BASE_DIR / ".env"),
+            str(BACKEND_DIR / ".env"),
         ],
         extra="ignore"
     )

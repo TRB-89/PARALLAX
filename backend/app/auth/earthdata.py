@@ -68,11 +68,18 @@ class EarthdataAuthManager:
         except earthaccess.exceptions.LoginAttemptFailure as exc:
             self._authenticated = False
             self._username = username
-            self._error_message = (
-                f"Invalid NASA Earthdata credentials for user '{self.mask_string(username)}'. "
-                "Please verify your credentials at https://urs.earthdata.nasa.gov. "
-                "Cached demonstration scenes remain fully functional."
-            )
+            exc_str = str(exc).lower()
+            if "locked" in exc_str or "exceeded" in exc_str:
+                self._error_message = (
+                    f"NASA Earthdata profile for user '{self.mask_string(username)}' is temporarily locked "
+                    "for 10 minutes due to previous failed attempts. Please wait or verify password at https://urs.earthdata.nasa.gov."
+                )
+            else:
+                self._error_message = (
+                    f"Invalid NASA Earthdata credentials for user '{self.mask_string(username)}'. "
+                    "Please verify your credentials at https://urs.earthdata.nasa.gov. "
+                    "Cached demonstration scenes remain fully functional."
+                )
             logger.warning("NASA Earthdata authentication failed: %s", self._error_message)
         except Exception as exc:
             self._authenticated = False

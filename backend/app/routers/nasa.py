@@ -137,14 +137,39 @@ def process_satellite_imagery(payload: ProcessRequest):
         case_id=payload.case_id or "demo_flood_case"
     )
 
+    # Read manifest if present in case directory for real provenance
+    manifest = {}
+    manifest_file = case_dir / "manifest.json"
+    if manifest_file.exists():
+        try:
+            with open(manifest_file, "r") as f:
+                manifest = json.load(f)
+        except Exception as e:
+            logger.warning("Error reading manifest for %s: %s", case_dir.name, e)
+
+    is_demo = manifest.get("provenance", {}).get(
+        "demonstration_mode", (payload.case_id or "") == "demo_flood_case"
+    )
+    data_label = "verified_cached_demonstration" if is_demo else "live_nasa_earthdata"
+
     provenance = DataProvenance(
-        pre_event_granule="OPERA_L2_RTC-S1_T001-000288-IW3_20240110T181405Z_v1.0",
-        post_event_granule="OPERA_L2_RTC-S1_T001-000288-IW3_20240122T181405Z_v1.0",
-        dswx_granule="OPERA_L3_DSWx-S1_T001-000288-IW3_20240122_v1.0",
-        acquisition_date_pre="2024-01-10T18:14:05Z",
-        acquisition_date_post="2024-01-22T18:14:05Z",
-        is_demonstration_scene=True,
-        data_label="verified_cached_demonstration",
+        pre_event_granule=manifest.get("pre_event", {}).get(
+            "granule_id", "OPERA_L2_RTC-S1_T001-000288-IW3_20240110T181405Z_v1.0"
+        ),
+        post_event_granule=manifest.get("post_event", {}).get(
+            "granule_id", "OPERA_L2_RTC-S1_T001-000288-IW3_20240122T181405Z_v1.0"
+        ),
+        dswx_granule=manifest.get("dswx", {}).get(
+            "granule_id", "OPERA_L3_DSWx-S1_T001-000288-IW3_20240122_v1.0"
+        ),
+        acquisition_date_pre=manifest.get("pre_event", {}).get(
+            "acquisition_date", "2024-01-10T18:14:05Z"
+        ),
+        acquisition_date_post=manifest.get("post_event", {}).get(
+            "acquisition_date", "2024-01-22T18:14:05Z"
+        ),
+        is_demonstration_scene=is_demo,
+        data_label=data_label,
         disclaimer=(
             "Treat newly identified areas as candidate inundation until independently validated. "
             "Cross-sensor divergence against OPERA DSWx highlights potential vegetation penetration "
@@ -152,6 +177,8 @@ def process_satellite_imagery(payload: ProcessRequest):
         ),
         citations=[d.citation for d in DATASETS_METADATA]
     )
+
+    created_at = manifest.get("post_event", {}).get("acquisition_date", "2024-01-22T18:14:05Z")
 
     metrics = AnalysisMetrics(
         analysis_id=result["analysis_id"],
@@ -165,7 +192,7 @@ def process_satellite_imagery(payload: ProcessRequest):
         confidence_summary=result["confidence_summary"],
         provenance=provenance,
         layer_urls=result["layer_urls"],
-        created_at="2024-01-22T18:14:05Z"
+        created_at=created_at
     )
     save_analysis_record(metrics.model_dump())
     return metrics

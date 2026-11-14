@@ -92,7 +92,7 @@ def readiness_check():
         logger.error(f"Readiness check failed for database: {e}")
 
     disk_ok = settings.DATA_DIR.exists() and os.access(str(settings.DATA_DIR), os.W_OK)
-    ed_status = auth_manager.get_status()
+    ed_status = auth_manager.authenticate()
 
     is_ready = db_ok and disk_ok
     status_code = 200 if is_ready else 503

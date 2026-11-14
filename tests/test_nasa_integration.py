@@ -37,3 +37,39 @@ def test_verified_geotiff_raster_validation():
         assert src.bounds.bottom < src.bounds.top
         data = src.read(1)
         assert data.size > 10000
+
+def test_chennai_live_case_rasterio_validation():
+    """Validates live Chennai NASA OPERA assets in EPSG:32644."""
+    case_dir = os.path.abspath("data/cases/chennai_live_case")
+    assert os.path.exists(case_dir)
+
+    vv_file = os.path.join(case_dir, "post_rtc_vv.tif")
+    vh_file = os.path.join(case_dir, "post_rtc_vh.tif")
+    dswx_file = os.path.join(case_dir, "opera_dswx_aligned.tif")
+
+    for fpath in [vv_file, vh_file, dswx_file]:
+        assert os.path.exists(fpath)
+        with rasterio.open(fpath) as src:
+            assert str(src.crs) == "EPSG:32644"
+            assert src.res == (30.0, 30.0)
+            assert src.width == 3301
+            assert src.height == 1639
+
+def test_chennai_live_case_execution_and_persistence():
+    """Executes live Chennai case through API and verifies database persistence."""
+    res = client.post("/api/nasa/process", json={"case_id": "chennai_live_case"})
+    assert res.status_code == 200
+    data = res.json()
+    assert data["analysis_id"] == "ana_chennai_live_case"
+    assert data["case_id"] == "chennai_live_case"
+    assert data["provenance"]["data_label"] == "live_nasa_earthdata"
+    assert data["provenance"]["is_demonstration_scene"] is False
+    assert "OPERA_L2_RTC-S1_T092-196459-IW1" in data["provenance"]["post_event_granule"]
+    assert data["open_water_km2"] > 0
+    assert data["total_aoi_km2"] > 1000.0
+
+    # Verify retrieval from /api/analysis/{id}/metrics
+    m_res = client.get("/api/analysis/ana_chennai_live_case/metrics")
+    assert m_res.status_code == 200
+    assert m_res.json()["case_id"] == "chennai_live_case"
+
