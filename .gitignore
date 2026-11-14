@@ -1,0 +1,70 @@
+# Environment & Secrets
+.env
+.env.*
+!.env.example
+*.env
+
+# Project documentation & office binaries
+Documentation.docx
+*.docx
+*.pptx
+*.xlsx
+*.pdf
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+ENV/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# JavaScript / Node / Vite
+node_modules/
+dist/
+dist-ssr/
+*.local
+.npm
+.yarn/
+.vite/
+
+# Geospatial Data & Raw Downloads
+data/raw/*
+!data/raw/.gitkeep
+data/processed/*
+!data/processed/.gitkeep
+*.h5
+*.HDF5
+*.nc
+*.tif
+*.tiff
+*.vrt
+*.tar.gz
+*.zip
+
+# OS & IDE Files
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/
+.idea/
+*.swp
+*.swo
