@@ -1,5 +1,5 @@
 from typing import List, Optional, Dict, Any
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 class EarthdataStatusResponse(BaseModel):
     authenticated: bool
@@ -29,6 +29,28 @@ class SearchRequest(BaseModel):
     end_date: str = Field(..., description="YYYY-MM-DD")
     polarization: Optional[str] = Field(None, description="e.g. VV, VH, or VV+VH")
     limit: int = Field(10, ge=1, le=50)
+
+    @field_validator("bbox")
+    @classmethod
+    def validate_bbox(cls, v: List[float]):
+        if len(v) != 4:
+            raise ValueError("Bounding box must contain exactly 4 coordinates: [west, south, east, north]")
+        west, south, east, north = v
+        if not (-180.0 <= west <= 180.0 and -180.0 <= east <= 180.0):
+            raise ValueError("Longitude must be between -180.0 and 180.0 degrees")
+        if not (-90.0 <= south <= 90.0 and -90.0 <= north <= 90.0):
+            raise ValueError("Latitude must be between -90.0 and 90.0 degrees")
+        if west >= east:
+            raise ValueError("Inverted bounding box: west longitude must be less than east longitude")
+        if south >= north:
+            raise ValueError("Inverted bounding box: south latitude must be less than north latitude")
+        return v
+
+    @model_validator(mode="after")
+    def validate_date_order(self):
+        if self.start_date > self.end_date:
+            raise ValueError("Start date must be earlier than or equal to end date")
+        return self
 
 class SearchResponse(BaseModel):
     dataset: str

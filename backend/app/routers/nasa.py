@@ -18,6 +18,7 @@ from app.services.search_service import search_service
 from app.services.download_service import download_service
 from app.services.detection_engine import detection_engine
 from app.services.job_manager import job_manager
+from app.database import save_analysis_record
 
 logger = logging.getLogger("parallax.api.nasa")
 router = APIRouter(prefix="/api/nasa", tags=["NASA Earthdata"])
@@ -152,7 +153,7 @@ def process_satellite_imagery(payload: ProcessRequest):
         citations=[d.citation for d in DATASETS_METADATA]
     )
 
-    return AnalysisMetrics(
+    metrics = AnalysisMetrics(
         analysis_id=result["analysis_id"],
         case_id=result["case_id"],
         total_aoi_km2=result["total_aoi_km2"],
@@ -166,3 +167,5 @@ def process_satellite_imagery(payload: ProcessRequest):
         layer_urls=result["layer_urls"],
         created_at="2024-01-22T18:14:05Z"
     )
+    save_analysis_record(metrics.model_dump())
+    return metrics

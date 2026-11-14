@@ -29,6 +29,13 @@ class Settings(BaseSettings):
     CASES_DIR: Path = BASE_DIR / "data" / "cases"
     CACHE_DIR: Path = BASE_DIR / "data" / "cache"
 
+    # Database Configuration
+    DATABASE_URL: str = ""
+
+    @property
+    def db_url(self) -> str:
+        return self.DATABASE_URL if self.DATABASE_URL else f"sqlite:///{self.DATA_DIR / 'parallax.db'}"
+
     model_config = SettingsConfigDict(
         env_file=[
             str(BACKEND_DIR / ".env"),

@@ -3,6 +3,7 @@ import time
 import logging
 from typing import Dict, Any, Optional, Callable
 from concurrent.futures import ThreadPoolExecutor
+from app.database import save_job_record, load_job_record
 
 logger = logging.getLogger("parallax.jobs")
 
@@ -13,7 +14,7 @@ class JobManager:
 
     def create_job(self, job_type: str, metadata: Optional[Dict[str, Any]] = None) -> str:
         job_id = f"job_{uuid.uuid4().hex[:10]}"
-        self.jobs[job_id] = {
+        job = {
             "id": job_id,
             "type": job_type,
             "status": "pending",
@@ -25,6 +26,8 @@ class JobManager:
             "result": None,
             "error": None
         }
+        self.jobs[job_id] = job
+        save_job_record(job)
         return job_id
 
     def update_job(
@@ -36,9 +39,15 @@ class JobManager:
         result: Optional[Any] = None,
         error: Optional[str] = None
     ):
-        if job_id not in self.jobs:
-            return
-        job = self.jobs[job_id]
+        job = self.jobs.get(job_id)
+        if not job:
+            db_job = load_job_record(job_id)
+            if db_job:
+                self.jobs[job_id] = db_job
+                job = db_job
+            else:
+                return
+
         if status:
             job["status"] = status
         if progress is not None:
@@ -50,9 +59,16 @@ class JobManager:
         if error is not None:
             job["error"] = error
         job["updated_at"] = time.time()
+        save_job_record(job)
 
     def get_job(self, job_id: str) -> Optional[Dict[str, Any]]:
-        return self.jobs.get(job_id)
+        if job_id in self.jobs:
+            return self.jobs[job_id]
+        db_job = load_job_record(job_id)
+        if db_job:
+            self.jobs[job_id] = db_job
+            return db_job
+        return None
 
     def submit(self, job_id: str, func: Callable, *args, **kwargs):
         def wrapper():

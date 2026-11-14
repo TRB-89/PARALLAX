@@ -1,10 +1,13 @@
 import os
 import logging
 from contextlib import asynccontextmanager
-from fastapi import FastAPI
+from fastapi import FastAPI, Response
+from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from sqlalchemy import text
 from app.config import settings
+from app.database import init_db, SessionLocal
 from app.auth.earthdata import auth_manager
 from app.routers.nasa import router as nasa_router
 from app.routers.analysis import router as analysis_router
@@ -20,6 +23,7 @@ logger = logging.getLogger("parallax.main")
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     logger.info("Initializing PARALLAX backend...")
+    init_db()
     status = auth_manager.authenticate()
     logger.info(
         "NASA Earthdata Initialization: %s (Status: %s)",
@@ -75,3 +79,33 @@ def healthcheck():
         "earthdata_configured": bool(settings.EARTHDATA_USERNAME and settings.EARTHDATA_PASSWORD),
         "demo_scenes_ready": True
     }
+
+@app.get("/readiness")
+def readiness_check():
+    """Validates real backend dependencies (database, storage, Earthdata service) rather than hardcoded response."""
+    db_ok = False
+    try:
+        with SessionLocal() as session:
+            session.execute(text("SELECT 1"))
+            db_ok = True
+    except Exception as e:
+        logger.error(f"Readiness check failed for database: {e}")
+
+    disk_ok = settings.DATA_DIR.exists() and os.access(str(settings.DATA_DIR), os.W_OK)
+    ed_status = auth_manager.get_status()
+
+    is_ready = db_ok and disk_ok
+    status_code = 200 if is_ready else 503
+
+    return JSONResponse(
+        status_code=status_code,
+        content={
+            "status": "ready" if is_ready else "not_ready",
+            "dependencies": {
+                "database": "connected" if db_ok else "disconnected",
+                "storage": "writable" if disk_ok else "unwritable",
+                "earthdata": ed_status["status"],
+                "demo_scenes": "available" if (settings.CASES_DIR / "demo_flood_case").exists() else "missing"
+            }
+        }
+    )
